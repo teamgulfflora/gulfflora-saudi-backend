@@ -4,7 +4,10 @@ const router = express.Router();
 const multer = require("multer");
 const storage = require("../../../utils/appwrite/storage");
 const { InputFile } = require("node-appwrite/file");
-const { Permission, Role, Query } = require("node-appwrite");
+const { Permission, Role, Query, ID } = require("node-appwrite");
+const databases = require("../../../utils/appwrite/database");
+
+const xlsx = require("xlsx");
 
 const uploads = multer({ storage: multer.memoryStorage() });
 
@@ -66,5 +69,30 @@ router.get("/", async (req, res) => {
         deleteFiles
     })
 })
+
+router.post("/create", uploads.single("file"), async (req, res) => {
+    try {
+        const fileBuffer = req.file.buffer;
+        const currentSheet = xlsx.read(fileBuffer, { type: "buffer" });
+        const productsJson = xlsx.utils.sheet_to_json(currentSheet.Sheets[currentSheet.SheetNames[0]]);
+
+        const createdProducts = await Promise.all(productsJson.map(async (product) => {
+            return await databases.createDocument(
+                process.env.APPWRITE_DATABASE_ID,
+                process.env.APPWRITE_PRODUCTS_DC_ID,
+                ID.unique(), // Generate unique ID for each document
+                product
+            );
+        }));
+
+        res.json({
+            createdProducts
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: error.message || "Failed to process file and create products"
+        });
+    }
+});
 
 module.exports = router;

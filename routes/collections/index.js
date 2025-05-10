@@ -45,15 +45,6 @@ router.post("/", async (req, res) => {
         })
     }
 
-    const queriesArray = [
-        Query.contains("product_categories", slug)
-    ]
-
-    queries.forEach(query => {
-        queriesArray.push(
-            Query[query.type](...query.values)
-        )
-    });
     try {
         const collections = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
@@ -69,6 +60,17 @@ router.post("/", async (req, res) => {
                 message: "Collection not found"
             })
         }
+
+        const queriesArray = [
+            Query.contains("product_categories", [collections.documents[0].collection_name])
+        ]
+
+        queries.forEach(query => {
+            queriesArray.push(
+                Query[query.type](...query.values)
+            )
+        });
+
         const collectionProducts = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_PRODUCTS_DC_ID,
@@ -78,7 +80,7 @@ router.post("/", async (req, res) => {
             status: "success",
             statusCode: 200,
             collections: collections.documents[0],
-            products: collectionProducts
+            products: collectionProducts,
         })
     } catch (error) {
 
