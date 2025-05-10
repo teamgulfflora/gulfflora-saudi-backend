@@ -34,7 +34,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-    const { slug, queries } = req.body;
+    const { queries } = req.body;
 
     if (!queries || !Array.isArray(queries)) {
         return res.status(400).json({

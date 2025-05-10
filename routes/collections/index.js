@@ -62,7 +62,7 @@ router.post("/", async (req, res) => {
         }
 
         const queriesArray = [
-            Query.contains("product_categories", [collections.documents[0].collection_name])
+            Query.contains("product_categories", [collections.documents[0].collection_id])
         ]
 
         queries.forEach(query => {
