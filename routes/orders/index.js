@@ -95,4 +95,38 @@ router.post("/update", async (req, res) => {
     }
 })
 
+router.post("/get", async (req, res) => {
+    const { order_id } = req.body;
+
+    if(!order_id) {
+        res.status(400).json({
+            status: "failed",
+            statusCode: 400,
+            message: "Order id is missing"
+        })
+    }
+    try {
+        const order = await databases.listDocuments(
+            process.env.APPWRITE_DATABASE_ID,
+            process.env.APPWRITE_ORDERS_DC_ID,
+            [
+                Query.equal("order_id", order_id)
+            ]
+        );
+
+        res.status(200).json({
+            status: "success",
+            statusCode: 200,
+            order
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "failed",
+            statusCode: 500,
+            message: error
+        });
+    }
+})
+
 module.exports = router;
