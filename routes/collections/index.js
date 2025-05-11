@@ -7,7 +7,10 @@ router.get("/", async (req, res) => {
     try {
         const collections = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_COLLECTIONS_DC_ID
+            process.env.APPWRITE_COLLECTIONS_DC_ID,
+            [
+                Query.limit(100)
+            ]
         );
 
         if (!collections || !collections.documents || collections.documents.length === 0) {
