@@ -49,7 +49,7 @@ router.post("/create", async (req, res) => {
 router.post("/update", async (req, res) => {
     const { order_id, order } = req.body;
 
-    if(!order_id || !order) {
+    if (!order_id || !order) {
         res.status(400).json({
             status: "failed",
             statusCode: 400,
@@ -65,7 +65,7 @@ router.post("/update", async (req, res) => {
             ]
         );
 
-        if(!getOrderDetails.documents.length) {
+        if (!getOrderDetails.documents.length) {
             res.status(404).json({
                 status: "failed",
                 statusCode: 404,
@@ -98,7 +98,7 @@ router.post("/update", async (req, res) => {
 router.post("/get", async (req, res) => {
     const { order_id } = req.body;
 
-    if(!order_id) {
+    if (!order_id) {
         res.status(400).json({
             status: "failed",
             statusCode: 400,
@@ -114,11 +114,18 @@ router.post("/get", async (req, res) => {
             ]
         );
 
+        if (order.documents.length < 1) {
+            res.status(401).json({
+                status: "failed",
+                statusCode: 401,
+                message: "Order not found"
+            })
+        }
         res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            order
-        })
+                status: "success",
+                statusCode: 200,
+                order
+            })
 
     } catch (error) {
         return res.status(500).json({
