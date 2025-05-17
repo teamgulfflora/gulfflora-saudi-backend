@@ -78,7 +78,7 @@ router.post("/", async (req, res) => {
         const cityCollection = await database.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_CITIES_DC_ID,
-            [Query.equal("city_slug", slug)]
+            [Query.equal("city_slug", [slug])]
         );
 
         if (!cityCollection.documents.length) {
