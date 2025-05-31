@@ -7,10 +7,13 @@ router.get("/", async (req, res) => {
     try {
         const collections = await database.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_CITIES_DC_ID
+            process.env.APPWRITE_CITIES_DC_ID,
+            [Query.limit(100)]
         );
 
-        if (!collections || !collections.documents || collections.documents.length === 0) {
+        const docs = collections?.documents || [];
+
+        if (docs.length === 0) {
             return res.status(404).json({
                 status: "not_found",
                 statusCode: 404,
@@ -21,7 +24,7 @@ router.get("/", async (req, res) => {
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            collections: collections.documents
+            collections: docs
         });
 
     } catch (error) {
@@ -39,7 +42,7 @@ router.post("/", async (req, res) => {
 
     if (!slug || typeof slug !== "string") {
         return res.status(400).json({
-            status: "fail",
+            status: "failed",
             statusCode: 400,
             message: "Invalid or missing 'slug'"
         });
@@ -47,13 +50,14 @@ router.post("/", async (req, res) => {
 
     if (!Array.isArray(queries)) {
         return res.status(400).json({
-            status: "fail",
+            status: "failed",
             statusCode: 400,
             message: "'queries' must be an array"
         });
     }
 
     const queriesArray = [];
+
     try {
         queries.forEach(query => {
             if (!query.type || !Array.isArray(query.values)) {
@@ -68,7 +72,7 @@ router.post("/", async (req, res) => {
         });
     } catch (err) {
         return res.status(400).json({
-            status: "fail",
+            status: "failed",
             statusCode: 400,
             message: `Invalid query parameters: ${err.message}`
         });
@@ -81,7 +85,9 @@ router.post("/", async (req, res) => {
             [Query.equal("city_slug", [slug])]
         );
 
-        if (!cityCollection.documents.length) {
+        const cities = cityCollection?.documents || [];
+
+        if (cities.length === 0) {
             return res.status(404).json({
                 status: "failed",
                 statusCode: 404,
@@ -98,7 +104,7 @@ router.post("/", async (req, res) => {
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            city: cityCollection.documents[0],
+            city: cities[0],
             products: products || []
         });
 
