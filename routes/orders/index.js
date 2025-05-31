@@ -12,128 +12,142 @@ router.get("/all", async (req, res) => {
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            orders
+            orders: orders?.documents || []
         });
     } catch (error) {
+        console.error("GET /all error:", error);
         return res.status(500).json({
             status: "failed",
             statusCode: 500,
             message: "Internal Server Error"
         });
     }
-})
+});
 
 router.post("/create", async (req, res) => {
     const { order } = req.body;
+
+    if (!order || typeof order !== "object") {
+        return res.status(400).json({
+            status: "failed",
+            statusCode: 400,
+            message: "Missing or invalid order data"
+        });
+    }
+
     try {
         const createOrder = await databases.createDocument(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_ORDERS_DC_ID,
             "unique()",
             order
-        )
+        );
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            createOrder
+            order: createOrder
         });
     } catch (error) {
+        console.error("POST /create error:", error);
         return res.status(500).json({
             status: "failed",
             statusCode: 500,
-            message: error
+            message: "Failed to create order"
         });
     }
-})
+});
 
 router.post("/update", async (req, res) => {
     const { order_id, order } = req.body;
 
-    if (!order_id || !order) {
-        res.status(400).json({
+    if (!order_id || !order || typeof order !== "object") {
+        return res.status(400).json({
             status: "failed",
             statusCode: 400,
-            message: "Order is or order details missing"
-        })
+            message: "Missing order ID or update data"
+        });
     }
+
     try {
-        const getOrderDetails = await databases.listDocuments(
+        const results = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_ORDERS_DC_ID,
-            [
-                Query.equal("order_id", order_id)
-            ]
+            [Query.equal("order_id", order_id)]
         );
 
-        if (!getOrderDetails.documents.length) {
-            res.status(404).json({
+        const existingOrder = results?.documents?.[0];
+        if (!existingOrder) {
+            return res.status(404).json({
                 status: "failed",
                 statusCode: 404,
                 message: "Order not found"
-            })
+            });
         }
 
-        const updateOrder = await databases.updateDocument(
+        const updated = await databases.updateDocument(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_ORDERS_DC_ID,
-            getOrderDetails.documents[0].$id,
+            existingOrder.$id,
             order
-        )
+        );
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             statusCode: 200,
-            updateOrder
-        })
+            order: updated
+        });
 
     } catch (error) {
+        console.error("POST /update error:", error);
         return res.status(500).json({
             status: "failed",
             statusCode: 500,
-            message: error
+            message: "Failed to update order"
         });
     }
-})
+});
 
 router.post("/get", async (req, res) => {
     const { order_id } = req.body;
 
     if (!order_id) {
-        res.status(400).json({
+        return res.status(400).json({
             status: "failed",
             statusCode: 400,
-            message: "Order id is missing"
-        })
+            message: "Order ID is missing"
+        });
     }
+
     try {
-        const order = await databases.listDocuments(
+        const results = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_ORDERS_DC_ID,
-            [
-                Query.equal("order_id", order_id)
-            ]
+            [Query.equal("order_id", order_id)]
         );
 
-        if (order.documents.length < 1) {
-            res.status(401).json({
+        const order = results?.documents?.[0];
+        if (!order) {
+            return res.status(404).json({
                 status: "failed",
-                statusCode: 401,
+                statusCode: 404,
                 message: "Order not found"
-            })
+            });
         }
-        res.status(200).json({
-                status: "success",
-                statusCode: 200,
-                order
-            })
+
+        return res.status(200).json({
+            status: "success",
+            statusCode: 200,
+            order
+        });
 
     } catch (error) {
+        console.error("POST /get error:", error);
         return res.status(500).json({
             status: "failed",
             statusCode: 500,
-            message: error
+            message: "Failed to retrieve order"
         });
     }
-})
+});
 
 module.exports = router;

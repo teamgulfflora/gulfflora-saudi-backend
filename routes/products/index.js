@@ -1,16 +1,19 @@
 const express = require("express");
 const databases = require("../../utils/appwrite/database");
-const router = express.Router();
 const { Query } = require("node-appwrite");
+const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
         const products = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_PRODUCTS_DC_ID
+            process.env.APPWRITE_PRODUCTS_DC_ID,
+            [Query.limit(100)]
         );
 
-        if (!products || !products.documents || products.documents.length === 0) {
+        const docs = products?.documents || [];
+
+        if (docs.length === 0) {
             return res.status(404).json({
                 status: "failed",
                 statusCode: 404,
@@ -21,8 +24,9 @@ router.get("/", async (req, res) => {
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            products: products.documents
+            products: docs
         });
+
     } catch (error) {
         console.error("Error fetching products:", error);
         return res.status(500).json({
@@ -36,7 +40,7 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
     const { queries } = req.body;
 
-    if (!queries || !Array.isArray(queries)) {
+    if (!Array.isArray(queries)) {
         return res.status(400).json({
             status: "failed",
             statusCode: 400,
@@ -45,6 +49,7 @@ router.post("/", async (req, res) => {
     }
 
     const queriesArray = [];
+
     try {
         queries.forEach(query => {
             if (!query.type || !Array.isArray(query.values)) {
@@ -59,7 +64,7 @@ router.post("/", async (req, res) => {
         });
     } catch (err) {
         return res.status(400).json({
-            status: "fail",
+            status: "failed",
             statusCode: 400,
             message: `Invalid query parameters: ${err.message}`
         });
@@ -75,11 +80,11 @@ router.post("/", async (req, res) => {
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            products: products.documents || []
+            products: products?.documents || []
         });
 
     } catch (error) {
-        console.error("Error in POST /collections:", error);
+        console.error("Error in POST /products:", error);
         return res.status(500).json({
             status: "error",
             statusCode: 500,
@@ -93,7 +98,7 @@ router.post("/product", async (req, res) => {
 
     if (!slug || typeof slug !== "string") {
         return res.status(400).json({
-            status: "fail",
+            status: "failed",
             statusCode: 400,
             message: "Invalid or missing 'slug'"
         });
@@ -106,7 +111,9 @@ router.post("/product", async (req, res) => {
             [Query.equal("product_slug", [slug])]
         );
 
-        if (!product || !product.documents || product.documents.length === 0) {
+        const docs = product?.documents || [];
+
+        if (docs.length === 0) {
             return res.status(404).json({
                 status: "failed",
                 statusCode: 404,
@@ -117,8 +124,9 @@ router.post("/product", async (req, res) => {
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            product: product.documents[0]
+            product: docs[0]
         });
+
     } catch (error) {
         console.error("Error fetching product:", error);
         return res.status(500).json({

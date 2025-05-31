@@ -8,12 +8,12 @@ router.get("/", async (req, res) => {
         const collections = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_COLLECTIONS_DC_ID,
-            [
-                Query.limit(100)
-            ]
+            [Query.limit(100)]
         );
 
-        if (!collections || !collections.documents || collections.documents.length === 0) {
+        const docs = collections?.documents || [];
+
+        if (docs.length === 0) {
             return res.status(404).json({
                 status: "not_found",
                 statusCode: 404,
@@ -24,7 +24,7 @@ router.get("/", async (req, res) => {
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            collections: collections.documents
+            collections: docs
         });
 
     } catch (error) {
@@ -40,53 +40,57 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
     const { slug, queries } = req.body;
 
-    if (!slug) {
-        res.status(400).json({
+    if (!slug || !Array.isArray(queries)) {
+        return res.status(400).json({
             status: "failed",
             statusCode: 400,
             message: "Slug or queries array missing"
-        })
+        });
     }
 
     try {
         const collections = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_COLLECTIONS_DC_ID,
-            [
-                Query.equal("collection_slug", slug)
-            ]
-        )
-        if (collections.documents.length == 0) {
-            res.status(404).json({
+            [Query.equal("collection_slug", slug)]
+        );
+
+        const docs = collections?.documents || [];
+
+        if (docs.length === 0) {
+            return res.status(404).json({
                 status: "failed",
                 statusCode: 404,
                 message: "Collection not found"
-            })
+            });
         }
 
+        const collection = docs[0];
         const queriesArray = [
-            Query.contains("product_categories", [collections.documents[0].collection_id])
-        ]
-
-        queries.forEach(query => {
-            queriesArray.push(
-                Query[query.type](...query.values)
-            )
-        });
+            Query.contains("product_categories", [collection.collection_id]),
+            ...queries.map(query => Query[query.type](...query.values))
+        ];
 
         const collectionProducts = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_PRODUCTS_DC_ID,
-            queriesArray || []
-        )
-        res.status(200).json({
+            queriesArray
+        );
+
+        return res.status(200).json({
             status: "success",
             statusCode: 200,
-            collections: collections.documents[0],
-            products: collectionProducts,
-        })
-    } catch (error) {
+            collections: collection,
+            products: collectionProducts
+        });
 
+    } catch (error) {
+        console.error("Error in POST /collections:", error);
+        return res.status(500).json({
+            status: "error",
+            statusCode: 500,
+            message: "Internal Server Error"
+        });
     }
 });
 

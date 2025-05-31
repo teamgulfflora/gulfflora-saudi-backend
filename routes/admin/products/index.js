@@ -77,10 +77,17 @@ router.post("/create", uploads.single("file"), async (req, res) => {
         const productsJson = xlsx.utils.sheet_to_json(currentSheet.Sheets[currentSheet.SheetNames[0]]);
 
         const createdProducts = await Promise.all(productsJson.map(async (product) => {
+            if (typeof product.product_categories === "string") {
+                product.product_categories = product.product_categories
+                    .split(",")
+                    .map(cat => cat.trim())
+                    .filter(cat => cat.length > 0);
+            }
+
             return await databases.createDocument(
                 process.env.APPWRITE_DATABASE_ID,
                 process.env.APPWRITE_PRODUCTS_DC_ID,
-                ID.unique(), // Generate unique ID for each document
+                ID.unique(),
                 product
             );
         }));
@@ -88,6 +95,36 @@ router.post("/create", uploads.single("file"), async (req, res) => {
         res.json({
             createdProducts
         });
+    } catch (error) {
+        res.status(500).json({
+            error: error.message || "Failed to process file and create products"
+        });
+    }
+});
+
+
+router.post("/delete", async (req, res) => {
+    try {
+        const products = await databases.listDocuments(
+            process.env.APPWRITE_DATABASE_ID,
+            process.env.APPWRITE_PRODUCTS_DC_ID,
+            [
+                Query.limit(100)
+            ]
+        )
+        const deleteProducts = await Promise.all(
+            products.documents.map(async(product)=>{
+                const deletedProduct = await databases.deleteDocument(
+                    process.env.APPWRITE_DATABASE_ID,
+                    process.env.APPWRITE_PRODUCTS_DC_ID,
+                    product.$id
+                );
+                return deletedProduct;
+            })
+        )
+        res.json({
+            deleteProducts
+        })
     } catch (error) {
         res.status(500).json({
             error: error.message || "Failed to process file and create products"

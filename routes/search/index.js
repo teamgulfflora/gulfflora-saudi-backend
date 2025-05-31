@@ -7,11 +7,11 @@ router.post("/", async (req, res) => {
     const { slug, queries } = req.body;
 
     if (!slug) {
-        res.status(400).json({
+        return res.status(400).json({
             status: "failed",
             statusCode: 400,
-            message: "Slug or queries array missing"
-        })
+            message: "Missing 'slug'"
+        });
     }
 
     try {
@@ -25,14 +25,18 @@ router.post("/", async (req, res) => {
                     Query.contains("collection_meta_keywords", slug),
                 ])
             ]
-        )
-        if (collections.documents.length == 0) {
-            res.status(404).json({
+        );
+
+        const foundCollections = collections?.documents || [];
+
+        if (foundCollections.length === 0) {
+            return res.status(404).json({
                 status: "failed",
                 statusCode: 404,
-                message: "Collection not found"
-            })
+                message: "No matching collections found"
+            });
         }
+
         const queriesArray = [
             Query.or([
                 Query.contains("product_title", slug),
@@ -40,25 +44,34 @@ router.post("/", async (req, res) => {
             ])
         ];
 
-        queries.forEach(query => {
-            queriesArray.push(
-                Query[query.type](...query.values)
-            )
-        });
+        if (Array.isArray(queries)) {
+            queries.forEach(query => {
+                if (query.type && Array.isArray(query.values) && typeof Query[query.type] === "function") {
+                    queriesArray.push(Query[query.type](...query.values));
+                }
+            });
+        }
 
         const products = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
             process.env.APPWRITE_PRODUCTS_DC_ID,
-            queriesArray || []
-        )
-        res.status(200).json({
+            queriesArray
+        );
+
+        return res.status(200).json({
             status: "success",
             statusCode: 200,
-            collections: collections,
-            products: products
-        })
-    } catch (error) {
+            collections: foundCollections,
+            products: products?.documents || []
+        });
 
+    } catch (error) {
+        console.error("Error in POST /search:", error);
+        return res.status(500).json({
+            status: "failed",
+            statusCode: 500,
+            message: "Internal Server Error"
+        });
     }
 });
 
