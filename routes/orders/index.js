@@ -7,7 +7,10 @@ router.get("/all", async (req, res) => {
     try {
         const orders = await databases.listDocuments(
             process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_ORDERS_DC_ID
+            process.env.APPWRITE_ORDERS_DC_ID,
+            [
+                Query.limit(100)
+            ]
         );
         return res.status(200).json({
             status: "success",
