@@ -1,97 +1,66 @@
 const express = require("express");
-const { Query } = require("node-appwrite");
-const databases = require("../../utils/appwrite/database");
+const getDatabase = require("../../utils/mongodb/database");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        const collections = await databases.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_COLLECTIONS_DC_ID,
-            [Query.limit(100)]
-        );
+        const database = await getDatabase();
+        const collections = await database.collection("gulfflora_collections").find({}).toArray();
 
-        const docs = collections?.documents || [];
-
-        if (docs.length === 0) {
-            return res.status(404).json({
-                status: "not_found",
-                statusCode: 404,
-                message: "No collections found"
-            });
+        if (collections.length > 0) {
+            return res.status(200).json({
+                status: "success",
+                statusCode: 200,
+                collections
+            })
         }
-
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            collections: docs
-        });
-
-    } catch (error) {
-        console.error("Error fetching collections:", error);
-        return res.status(500).json({
-            status: "error",
-            statusCode: 500,
-            message: "Internal Server Error"
-        });
-    }
-});
-
-router.post("/", async (req, res) => {
-    const { slug, queries } = req.body;
-
-    if (!slug || !Array.isArray(queries)) {
-        return res.status(400).json({
+        return res.status(404).json({
             status: "failed",
-            statusCode: 400,
-            message: "Slug or queries array missing"
-        });
-    }
-
-    try {
-        const collections = await databases.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_COLLECTIONS_DC_ID,
-            [Query.equal("collection_slug", slug)]
-        );
-
-        const docs = collections?.documents || [];
-
-        if (docs.length === 0) {
-            return res.status(404).json({
-                status: "failed",
-                statusCode: 404,
-                message: "Collection not found"
-            });
-        }
-
-        const collection = docs[0];
-        const queriesArray = [
-            Query.contains("product_categories", [collection.collection_id]),
-            ...queries.map(query => Query[query.type](...query.values))
-        ];
-
-        const collectionProducts = await databases.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_PRODUCTS_DC_ID,
-            queriesArray
-        );
-
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            collections: collection,
-            products: collectionProducts
-        });
-
+            statusCode: 404,
+            message: "No collections found"
+        })
     } catch (error) {
-        console.error("Error in POST /collections:", error);
         return res.status(500).json({
-            status: "error",
+            status: "failed",
             statusCode: 500,
-            message: "Internal Server Error"
-        });
+            message: error || "Internal server error"
+        })
     }
-});
+})
+
+router.post("/get", async (req, res) => {
+    const { collection_queries, limit, offset } = req.body;
+
+    if (collection_queries && typeof collection_queries === "object") {
+        try {
+            const database = await getDatabase();
+            const collections = await database.collection("gulfflora_collections").find(collection_queries).toArray();
+
+            if (collections.length > 0) {
+                const collectionId = collections[0].collection_id;
+                const totalProducts = await database.collection("gulfflora_products").find({product_categories: collectionId}).toArray();
+                const collectionProducts = await database.collection("gulfflora_products").find({product_categories: collectionId}).skip(offset || 0).limit(limit || 0).toArray();
+                return res.status(200).json({
+                    status: "success",
+                    statusCode: 200,
+                    collection: collections[0],
+                    totalProducts: totalProducts.length,
+                    products: collectionProducts
+                })
+            }
+        } catch (error) {
+            return res.status(500).json({
+                status: "failed",
+                statusCode: 500,
+                message: error || "Internal server error"
+            })
+        }
+    }
+    return res.status(400).json({
+        status: "failed",
+        statusCode: 400,
+        message: "Missing queries parameter"
+    })
+})
 
 module.exports = router;

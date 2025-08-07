@@ -8,6 +8,9 @@ const discounts = require("./discounts/index");
 const orders = require("./orders/index");
 const search = require("./search/index");
 const adminProducts = require("./admin/products/index");
+const adminCollections = require("./admin/collections/index");
+const adminCities = require("./admin/cities/index");
+const adminOrders = require("./admin/orders/index");
 const mailer = require("./mailer/index");
 
 router.use("/collections", collections);
@@ -17,6 +20,9 @@ router.use("/discounts", discounts);
 router.use("/orders", orders);
 router.use("/search", search);
 router.use("/admin/products", adminProducts);
+router.use("/admin/collections", adminCollections);
+router.use("/admin/cities", adminCities);
+router.use("/admin/orders", adminOrders);
 router.use("/mail", mailer);
 
 module.exports = router;

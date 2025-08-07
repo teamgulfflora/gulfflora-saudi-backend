@@ -1,119 +1,90 @@
 const express = require("express");
-const database = require("../../utils/appwrite/database");
-const { Query } = require("node-appwrite");
+const getDatabase = require("../../utils/mongodb/database");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        const collections = await database.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_CITIES_DC_ID,
-            [Query.limit(100)]
-        );
+        const database = await getDatabase();
+        const cities = await database.collection("gulfflora_cities").find({}).toArray();
 
-        const docs = collections?.documents || [];
-
-        if (docs.length === 0) {
-            return res.status(404).json({
-                status: "not_found",
-                statusCode: 404,
-                message: "No collections found"
+        if (cities.length > 0) {
+            return res.status(200).json({
+                status: "success",
+                statusCode: 200,
+                cities
             });
         }
 
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            collections: docs
+        return res.status(404).json({
+            status: "failed",
+            statusCode: 404,
+            message: "No cities found"
         });
-
     } catch (error) {
-        console.error("Error fetching collections:", error);
         return res.status(500).json({
             status: "error",
             statusCode: 500,
-            message: "Internal Server Error"
+            message: error.message || "Internal Server Error"
         });
     }
 });
 
-router.post("/", async (req, res) => {
-    const { slug, queries } = req.body;
+router.post("/get", async (req, res) => {
+    const { slug, queries, limit, offset } = req.body;
 
-    if (!slug || typeof slug !== "string") {
+    if (!slug) {
         return res.status(400).json({
             status: "failed",
             statusCode: 400,
-            message: "Invalid or missing 'slug'"
+            message: "Slug is missing"
         });
     }
 
-    if (!Array.isArray(queries)) {
+    if (!queries || typeof queries !== "object") {
         return res.status(400).json({
             status: "failed",
             statusCode: 400,
-            message: "'queries' must be an array"
-        });
-    }
-
-    const queriesArray = [];
-
-    try {
-        queries.forEach(query => {
-            if (!query.type || !Array.isArray(query.values)) {
-                throw new Error("Invalid query format");
-            }
-
-            if (typeof Query[query.type] !== "function") {
-                throw new Error(`Unsupported query type: ${query.type}`);
-            }
-
-            queriesArray.push(Query[query.type](...query.values));
-        });
-    } catch (err) {
-        return res.status(400).json({
-            status: "failed",
-            statusCode: 400,
-            message: `Invalid query parameters: ${err.message}`
+            message: "Queries missing or not a valid object"
         });
     }
 
     try {
-        const cityCollection = await database.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_CITIES_DC_ID,
-            [Query.equal("city_slug", [slug])]
-        );
-
-        const cities = cityCollection?.documents || [];
+        const database = await getDatabase();
+        const cities = await database.collection("gulfflora_cities")
+            .find({ collections_city_slug: slug })
+            .toArray();
 
         if (cities.length === 0) {
             return res.status(404).json({
                 status: "failed",
                 statusCode: 404,
-                message: "City not found with the provided slug"
+                message: "No city found with the provided slug"
             });
         }
 
-        const products = await database.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_PRODUCTS_DC_ID,
-            queriesArray
-        );
+        const totalProducts = await database.collection("gulfflora_products")
+            .find(queries)
+            .toArray();
+
+        const products = await database.collection("gulfflora_products")
+            .find(queries)
+            .limit(limit || 0)
+            .skip(offset || 0)
+            .toArray();
 
         return res.status(200).json({
             status: "success",
             statusCode: 200,
             city: cities[0],
-            products: products || []
+            totalProducts: totalProducts.length,
+            products
         });
 
     } catch (error) {
-        console.error("Error in POST /collections:", error);
         return res.status(500).json({
-            status: "error",
+            status: "failed",
             statusCode: 500,
-            message: "Internal Server Error"
+            message: error.message || "Internal server error"
         });
     }
 });

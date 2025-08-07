@@ -1,6 +1,5 @@
 const express = require("express");
-const databases = require("../../utils/appwrite/database");
-const { Query } = require("node-appwrite");
+const getDatabase = require("../../utils/mongodb/database");
 const router = express.Router();
 
 router.post("/", async (req, res) => {
@@ -16,14 +15,12 @@ router.post("/", async (req, res) => {
 
     try {
         const currentTime = Date.now();
+        const database = await getDatabase();
+        const results = await database.collection("gulfflora_discounts").find({
+            discount_code: discount
+        }).toArray();
 
-        const results = await databases.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_DISCOUNTS_DC_ID,
-            [Query.equal("discount_code", discount)]
-        );
-
-        const discountData = results?.documents?.[0];
+        const discountData = results[0];
 
         if (!discountData) {
             return res.status(404).json({

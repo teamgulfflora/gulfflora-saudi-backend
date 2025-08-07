@@ -1,138 +1,67 @@
 const express = require("express");
-const databases = require("../../utils/appwrite/database");
-const { Query } = require("node-appwrite");
+const getDatabase = require("../../utils/mongodb/database");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        const products = await databases.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_PRODUCTS_DC_ID,
-            [Query.limit(100)]
-        );
+        const database = await getDatabase();
+        const products = await database.collection("gulfflora_products").find({}).toArray();
 
-        const docs = products?.documents || [];
-
-        if (docs.length === 0) {
-            return res.status(404).json({
-                status: "failed",
-                statusCode: 404,
-                message: "No products found"
+        if (products.length > 0) {
+            return res.status(200).json({
+                status: "success",
+                statusCode: 200,
+                products
             });
         }
-
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            products: docs
+        return res.status(404).json({
+            status: "failed",
+            statusCode: 404,
+            message: "No orders found"
         });
-
     } catch (error) {
-        console.error("Error fetching products:", error);
         return res.status(500).json({
             status: "failed",
             statusCode: 500,
-            message: "Internal Server Error"
+            message: error.message || "Internal server error"
         });
     }
 });
 
 router.post("/", async (req, res) => {
-    const { queries } = req.body;
-
-    if (!Array.isArray(queries)) {
-        return res.status(400).json({
-            status: "failed",
-            statusCode: 400,
-            message: "'queries' must be an array"
-        });
-    }
-
-    const queriesArray = [];
-
-    try {
-        queries.forEach(query => {
-            if (!query.type || !Array.isArray(query.values)) {
-                throw new Error("Invalid query format");
-            }
-
-            if (typeof Query[query.type] !== "function") {
-                throw new Error(`Unsupported query type: ${query.type}`);
-            }
-
-            queriesArray.push(Query[query.type](...query.values));
-        });
-    } catch (err) {
-        return res.status(400).json({
-            status: "failed",
-            statusCode: 400,
-            message: `Invalid query parameters: ${err.message}`
-        });
-    }
-
-    try {
-        const products = await databases.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_PRODUCTS_DC_ID,
-            queriesArray
-        );
-
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            products: products?.documents || []
-        });
-
-    } catch (error) {
-        console.error("Error in POST /products:", error);
-        return res.status(500).json({
-            status: "error",
-            statusCode: 500,
-            message: "Internal Server Error"
-        });
-    }
-});
-
-router.post("/product", async (req, res) => {
     const { slug } = req.body;
 
-    if (!slug || typeof slug !== "string") {
+    if (!slug) {
         return res.status(400).json({
             status: "failed",
             statusCode: 400,
-            message: "Invalid or missing 'slug'"
+            message: "Product slug is missing"
         });
     }
 
     try {
-        const product = await databases.listDocuments(
-            process.env.APPWRITE_DATABASE_ID,
-            process.env.APPWRITE_PRODUCTS_DC_ID,
-            [Query.equal("product_slug", [slug])]
-        );
+        const database = await getDatabase();
+        const product = await database.collection("gulfflora_products").find({
+            product_slug: slug
+        }).toArray();
 
-        const docs = product?.documents || [];
-
-        if (docs.length === 0) {
-            return res.status(404).json({
-                status: "failed",
-                statusCode: 404,
-                message: "Product not found with the given slug"
-            });
+        if (product.length > 0) {
+            return res.status(200).json({
+                status: "success",
+                statusCode: 200,
+                product
+            })
         }
-
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            product: docs[0]
+        return res.status(404).json({
+            status: "failed",
+            statusCode: 404,
+            message: "Product not found"
         });
-
     } catch (error) {
-        console.error("Error fetching product:", error);
         return res.status(500).json({
             status: "failed",
             statusCode: 500,
-            message: "Internal Server Error"
+            message: "Failed to retrieve product"
         });
     }
 });
