@@ -12,7 +12,7 @@ router.post("/create", uploads.single("file"), async (req, res) => {
     try {
         const fileBuffer = req.file.buffer;
         const currentSheet = xlsx.read(fileBuffer, { type: "buffer" });
-        const productsJson = xlsx.utils.sheet_to_json(currentSheet.Sheets[currentSheet.SheetNames[1]]);
+        const productsJson = xlsx.utils.sheet_to_json(currentSheet.Sheets[currentSheet.SheetNames[0]]);
 
         const createdProducts = await Promise.all(productsJson.map(async (product) => {
             if (!product.product_title?.trim()) return null;
