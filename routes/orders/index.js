@@ -123,7 +123,7 @@ router.post("/get", async (req, res) => {
             return res.status(200).json({
                 status: "success",
                 statusCode: 200,
-                order
+                order: order[0]
             })
         }
         return res.status(404).json({
