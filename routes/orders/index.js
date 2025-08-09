@@ -116,7 +116,7 @@ router.post("/get", async (req, res) => {
     try {
         const database = await getDatabase();
         const order = await database.collection("gulfflora_orders").find({
-            orders_order_id: order_id
+            order_id: order_id
         }).toArray();
 
         if (order.length > 0) {
