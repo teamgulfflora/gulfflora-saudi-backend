@@ -11,6 +11,7 @@ const adminProducts = require("./admin/products/index");
 const adminCollections = require("./admin/collections/index");
 const adminCities = require("./admin/cities/index");
 const adminOrders = require("./admin/orders/index");
+const adminBlog = require("./admin/blog/index");
 const mailer = require("./mailer/index");
 const media = require("./media/index");
 
@@ -24,6 +25,7 @@ router.use("/admin/products", adminProducts);
 router.use("/admin/collections", adminCollections);
 router.use("/admin/cities", adminCities);
 router.use("/admin/orders", adminOrders);
+router.use("/admin/blog", adminBlog);
 router.use("/mail", mailer);
 router.use("/media", media);
 
