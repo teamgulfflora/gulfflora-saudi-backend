@@ -12,6 +12,7 @@ const adminCollections = require("./admin/collections/index");
 const adminCities = require("./admin/cities/index");
 const adminOrders = require("./admin/orders/index");
 const mailer = require("./mailer/index");
+const media = require("./media/index");
 
 router.use("/collections", collections);
 router.use("/products", products);
@@ -24,5 +25,6 @@ router.use("/admin/collections", adminCollections);
 router.use("/admin/cities", adminCities);
 router.use("/admin/orders", adminOrders);
 router.use("/mail", mailer);
+router.use("/media", media);
 
 module.exports = router;

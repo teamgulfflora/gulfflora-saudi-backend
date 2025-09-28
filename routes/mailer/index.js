@@ -3,11 +3,15 @@ const router = express.Router();
 const mailer = require("nodemailer");
 
 const transporter = mailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.GOOGLE_EMAIL_ADDRESS,
     pass: process.env.GOOGLE_EMAIL_APP_PASSWORD,
   },
+  logger: true,
+  debug: true,
 });
 
 router.get("/", (req, res) => {
@@ -31,10 +35,10 @@ router.post("/send", async (req, res) => {
 
   try {
     const mailOptions = {
-      from: '"Gulfflora" <orders@gulfflora.com>',
+      from: `"Gulfflora" <${process.env.GOOGLE_EMAIL_ADDRESS}>`,
       to: recipient,
-      cc: "orders@gulfflora.com",
-      subject: subject,
+      cc: process.env.GOOGLE_EMAIL_ADDRESS,
+      subject,
       html: body,
     };
 
