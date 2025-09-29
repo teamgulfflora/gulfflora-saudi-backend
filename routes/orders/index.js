@@ -75,6 +75,13 @@ router.post("/create", async (req, res) => {
                 result
             });
         }
+        else {
+            return res.status(400).json({
+                status: "failed",
+                statusCode: 400,
+                message: "Something went wrong with order"
+            });
+        }
     } catch (error) {
         return res.status(500).json({
             status: "failed",
