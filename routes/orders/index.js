@@ -2,7 +2,6 @@ const express = require("express");
 const getDatabase = require("../../utils/mongodb/database");
 const router = express.Router();
 const { ObjectId } = require("mongodb");
-const fetch = require("node-fetch");
 
 router.get("/all", async (req, res) => {
     try {
@@ -45,44 +44,11 @@ router.post("/create", async (req, res) => {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
 
-        if(createOrder) {
-            const response = await fetch("https://api.noonpayments.com/payment/v1/order", {
-                method: "POST",
-                headers: {
-                    "Content-Type" : "application/json",
-                    "Authorization" : `KEY ${process.env.NOON_PAYMENTS_API}`
-                },
-                body: JSON.stringify({
-                    apiOperation: "INITIATE",
-                    order: {
-                        name : `Gulfflora order ${order?.order_id}`, 
-                        amount: order?.order_total,
-                        currency: order?.order_currency,
-                        reference: order?.order_id,
-                        channel: "web",
-                        category: "pay"
-                    },
-                    configuration: {
-                        locale: "en",
-                        paymentAction: "SALE",
-                        returnUrl: `/order/${order?.order_id}`
-                    },
-                })
-            })
-            const result = await response.json();
-            return res.status(200).json({
-                status: "success",
-                statusCode: 200,
-                result
-            });
-        }
-        else {
-            return res.status(400).json({
-                status: "failed",
-                statusCode: 400,
-                message: "Something went wrong with the order"
-            });
-        }
+        return res.status(200).json({
+            status: "success",
+            statusCode: 200,
+            order: createOrder
+        });
     } catch (error) {
         return res.status(500).json({
             status: "failed",
