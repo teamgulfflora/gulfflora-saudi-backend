@@ -1,18 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const mailer = require("nodemailer");
-
-const transporter = mailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.GOOGLE_EMAIL_ADDRESS,
-    pass: process.env.GOOGLE_EMAIL_APP_PASSWORD,
-  },
-  logger: true,
-  debug: true,
-});
+const nodemailer = require("nodemailer");
 
 router.get("/", (req, res) => {
   return res.status(405).json({
@@ -34,22 +22,29 @@ router.post("/send", async (req, res) => {
   }
 
   try {
-    const mailOptions = {
-      from: `"Gulfflora" <${process.env.GOOGLE_EMAIL_ADDRESS}>`,
+    const transporter = nodemailer.createTransport({
+      host: "smtp-pulse.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.SENDPULSE_SMTP_EMAIL,
+        pass: process.env.SENDPULSE_SMTP_PASSWORD,
+      },
+    });
+
+    const info = await transporter.sendMail({
+      from: `"Gulfflora" <${process.env.SENDPULSE_SMTP_EMAIL}>`,
       to: recipient,
-      cc: process.env.GOOGLE_EMAIL_ADDRESS,
+      cc: process.env.SENDPULSE_SMTP_EMAIL,
       subject,
       html: body,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
+    });
 
     return res.status(200).json({
       status: "success",
       statusCode: 200,
       response: info,
     });
-
   } catch (error) {
     return res.status(500).json({
       status: "failed",
