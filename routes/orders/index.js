@@ -2,12 +2,12 @@ const express = require("express");
 const getDatabase = require("../../utils/mongodb/database");
 const router = express.Router();
 const { ObjectId } = require("mongodb");
+const fetch = require("node-fetch");
 
 router.get("/all", async (req, res) => {
     try {
         const database = await getDatabase();
         const orders = await database.collection("gulfflora_orders").find({}).toArray();
-
         if (orders.length > 0) {
             return res.status(200).json({
                 status: "success",
@@ -31,7 +31,6 @@ router.get("/all", async (req, res) => {
 
 router.post("/create", async (req, res) => {
     const { order } = req.body;
-
     if (!order || typeof order !== "object") {
         return res.status(400).json({
             status: "failed",
@@ -39,22 +38,20 @@ router.post("/create", async (req, res) => {
             message: "Missing or invalid order data"
         });
     }
-
     try {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
-
-        if(createOrder) {
+        if (createOrder) {
             const response = await fetch("https://api.noonpayments.com/payment/v1/order", {
                 method: "POST",
                 headers: {
-                    "Content-Type" : "application/json",
-                    "Authorization" : `KEY ${process.env.NOON_PAYMENTS_API}`
+                    "Content-Type": "application/json",
+                    "Authorization": `Key ${process.env.NOON_PAYMENTS_API}`
                 },
                 body: JSON.stringify({
                     apiOperation: "INITIATE",
                     order: {
-                        name : `Gulfflora order ${order?.order_id}`, 
+                        name: `Gulfflora order ${order?.order_id}`,
                         amount: order?.order_total,
                         currency: order?.order_currency,
                         reference: order?.order_id,
@@ -64,18 +61,17 @@ router.post("/create", async (req, res) => {
                     configuration: {
                         locale: "en",
                         paymentAction: "SALE",
-                        returnUrl: `/order/${order?.order_id}`
-                    },
+                        returnUrl: `${process.env.BASE_URL}/order/${order?.order_id}`
+                    }
                 })
-            })
+            });
             const result = await response.json();
             return res.status(200).json({
                 status: "success",
                 statusCode: 200,
                 result
             });
-        }
-        else {
+        } else {
             return res.status(400).json({
                 status: "failed",
                 statusCode: 400,
@@ -93,7 +89,6 @@ router.post("/create", async (req, res) => {
 
 router.post("/update", async (req, res) => {
     const { order_id, order } = req.body;
-
     if (!order_id || !order || typeof order !== "object") {
         return res.status(400).json({
             status: "failed",
@@ -101,16 +96,12 @@ router.post("/update", async (req, res) => {
             message: "Missing order ID or update data"
         });
     }
-
     try {
         const database = await getDatabase();
-        const getOrder = await database.collection("gulfflora_orders").find({
-            order_id: order_id
-        }).toArray();
-
+        const getOrder = await database.collection("gulfflora_orders").find({ order_id }).toArray();
         if (getOrder.length > 0) {
             const orderId = getOrder[0]._id;
-            const updateOrder = await database.collection("gulfflora_orders").updateOne(
+            await database.collection("gulfflora_orders").updateOne(
                 { _id: new ObjectId(orderId) },
                 { $set: order }
             );
@@ -120,7 +111,6 @@ router.post("/update", async (req, res) => {
                 message: "Order has been updated"
             });
         }
-
         return res.status(404).json({
             status: "failed",
             statusCode: 404,
@@ -137,7 +127,6 @@ router.post("/update", async (req, res) => {
 
 router.post("/get", async (req, res) => {
     const { order_id } = req.body;
-
     if (!order_id) {
         return res.status(400).json({
             status: "failed",
@@ -145,19 +134,15 @@ router.post("/get", async (req, res) => {
             message: "Order ID is missing"
         });
     }
-
     try {
         const database = await getDatabase();
-        const order = await database.collection("gulfflora_orders").find({
-            order_id: order_id
-        }).toArray();
-
+        const order = await database.collection("gulfflora_orders").find({ order_id }).toArray();
         if (order.length > 0) {
             return res.status(200).json({
                 status: "success",
                 statusCode: 200,
                 order: order[0]
-            })
+            });
         }
         return res.status(404).json({
             status: "failed",
