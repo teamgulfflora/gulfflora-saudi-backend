@@ -44,11 +44,37 @@ router.post("/create", async (req, res) => {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
 
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            order: createOrder
-        });
+        if(createOrder) {
+            const response = await fetch("https://api.noonpayments.com/payment/v1/order", {
+                method: "POST",
+                headers: {
+                    "Content-Type" : "application/json",
+                    "Authorization" : `KEY ${process.env.NOON_PAYMENTS_API}`
+                },
+                body: JSON.stringify({
+                    apiOperation: "INITIATE",
+                    order: {
+                        name : `Gulfflora order ${order?.order_id}`, 
+                        amount: order?.order_total,
+                        currency: order?.order_currency,
+                        reference: order?.order_id,
+                        channel: "web",
+                        category: "pay"
+                    },
+                    configuration: {
+                        locale: "en",
+                        paymentAction: "SALE",
+                        returnUrl: `/order/${order?.order_id}`
+                    },
+                })
+            })
+            const result = await response.json();
+            return res.status(200).json({
+                status: "success",
+                statusCode: 200,
+                result
+            });
+        }
     } catch (error) {
         return res.status(500).json({
             status: "failed",
