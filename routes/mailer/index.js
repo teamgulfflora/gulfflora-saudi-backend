@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const nodemailer = require("nodemailer");
 
 router.get("/", (req, res) => {
   return res.status(405).json({
@@ -12,7 +11,6 @@ router.get("/", (req, res) => {
 
 router.post("/send", async (req, res) => {
   const { recipient, subject, body } = req.body;
-
   if (!recipient || !subject || !body) {
     return res.status(400).json({
       status: "failed",
@@ -20,30 +18,44 @@ router.post("/send", async (req, res) => {
       message: "Require recipient, subject and body as parameters",
     });
   }
-
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp-pulse.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.SENDPULSE_SMTP_EMAIL,
-        pass: process.env.SENDPULSE_SMTP_PASSWORD,
+    const tokenRes = await fetch("https://api.sendpulse.com/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "client_credentials",
+        client_id: process.env.SENDPULSE_CLIENT_ID,
+        client_secret: process.env.SENDPULSE_CLIENT_SECRET,
+      }),
+    });
+    if (!tokenRes.ok) throw new Error("Failed to fetch access token");
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    const mailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
+      body: JSON.stringify({
+        email: {
+          html: body,
+          text: body.replace(/<[^>]+>/g, ""),
+          subject,
+          from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
+          to: [{ email: recipient }],
+        },
+      }),
     });
-
-    const info = await transporter.sendMail({
-      from: `"Gulfflora" <${process.env.SENDPULSE_SMTP_EMAIL}>`,
-      to: recipient,
-      cc: process.env.SENDPULSE_SMTP_EMAIL,
-      subject,
-      html: body,
-    });
-
+    if (!mailRes.ok) {
+      const errorText = await mailRes.text();
+      throw new Error(`SendPulse error: ${errorText}`);
+    }
+    const response = await mailRes.json();
     return res.status(200).json({
       status: "success",
       statusCode: 200,
-      response: info,
+      response,
     });
   } catch (error) {
     return res.status(500).json({
