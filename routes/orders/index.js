@@ -44,10 +44,39 @@ router.post("/create", async (req, res) => {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
 
+        const reference = `ORDER-${Date.now()}`;
+
+        const response = await fetch("https://api.sa.noonpayments.com/payment/v1/order", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Key ${process.env.NOON_PAYMENTS_API}`
+            },
+            body: JSON.stringify({
+                apiOperation: "INITIATE",
+                order: {
+                    name: order.order_id,
+                    amount: Number(order.order_total).toFixed(2),
+                    currency: order.order_currency,
+                    reference,
+                    channel: "web",
+                    category: "pay"
+                },
+                configuration: {
+                    locale: "en",
+                    paymentAction: "SALE",
+                    returnUrl: "https://gulfflora.com/order/callback"
+                }
+            })
+        });
+
+        const result = await response.json();
+
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            order: createOrder
+            order: createOrder,
+            payment: result
         });
     } catch (error) {
         return res.status(500).json({
@@ -77,7 +106,7 @@ router.post("/update", async (req, res) => {
 
         if (getOrder.length > 0) {
             const orderId = getOrder[0]._id;
-            const updateOrder = await database.collection("gulfflora_orders").updateOne(
+            await database.collection("gulfflora_orders").updateOne(
                 { _id: new ObjectId(orderId) },
                 { $set: order }
             );
