@@ -28,7 +28,6 @@ router.post("/send", async (req, res) => {
         client_secret: process.env.SENDPULSE_CLIENT_SECRET,
       }),
     });
-    if (!tokenRes.ok) throw new Error("Failed to fetch access token");
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
     const mailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
@@ -40,17 +39,12 @@ router.post("/send", async (req, res) => {
       body: JSON.stringify({
         email: {
           html: body,
-          text: body.replace(/<[^>]+>/g, ""),
           subject,
           from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
           to: [{ email: recipient }],
         },
       }),
     });
-    if (!mailRes.ok) {
-      const errorText = await mailRes.text();
-      throw new Error(`SendPulse error: ${errorText}`);
-    }
     const response = await mailRes.json();
     return res.status(200).json({
       status: "success",
