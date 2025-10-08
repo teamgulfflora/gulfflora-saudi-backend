@@ -15,6 +15,7 @@ router.get("/all", async (req, res) => {
                 orders
             });
         }
+
         return res.status(404).json({
             status: "failed",
             statusCode: 404,
@@ -43,6 +44,7 @@ router.post("/create", async (req, res) => {
     try {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
+
         const response = await fetch("https://api-test.sa.noonpayments.com/payment/v1/order", {
             method: "POST",
             headers: {
@@ -62,7 +64,7 @@ router.post("/create", async (req, res) => {
                 configuration: {
                     locale: "en",
                     paymentAction: "SALE",
-                    returnUrl: `https://gulfflora.com/order/callback?glfo=${orderId}`
+                    returnUrl: `https://gulfflora.com/order/callback?glfo=${order.order_id}`
                 }
             })
         });
@@ -150,8 +152,9 @@ router.post("/get", async (req, res) => {
                 status: "success",
                 statusCode: 200,
                 order: order[0]
-            })
+            });
         }
+
         return res.status(404).json({
             status: "failed",
             statusCode: 404,
