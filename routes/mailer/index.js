@@ -33,7 +33,7 @@ router.post("/send", async (req, res) => {
     const mailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
