@@ -1,71 +1,61 @@
 const express = require("express");
 const router = express.Router();
-const nodemailer = require("nodemailer");
 
-// SMTP transporter
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // use TLS
-  auth: {
-    user: process.env.GOOGLE_EMAIL_ADDRESS,
-    pass: process.env.GOOGLE_EMAIL_APP_PASSWORD,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-  connectionTimeout: 20000,
-  greetingTimeout: 20000,
-  socketTimeout: 20000,
-});
-
-// Verify SMTP connection
-transporter.verify((err, success) => {
-  if (err) console.error("SMTP connection failed:", err);
-  else console.log("SMTP ready to send emails");
-});
-
-// Block GET or other methods on the base route
-router.all("/", (req, res) => {
-  res.status(405).json({
+router.get("/", (req, res) => {
+  return res.status(405).json({
     status: "failed",
     statusCode: 405,
     message: "Method not allowed",
   });
 });
 
-// POST route to send email
 router.post("/send", async (req, res) => {
   const { recipient, subject, body } = req.body;
-
   if (!recipient || !subject || !body) {
     return res.status(400).json({
       status: "failed",
       statusCode: 400,
-      message: "recipient, subject, and body are required",
+      message: "Require recipient, subject and body as parameters",
     });
   }
-
   try {
-    const info = await transporter.sendMail({
-      from: `"Gulfflora" <${process.env.GOOGLE_EMAIL_ADDRESS}>`,
-      to: recipient,
-      cc: process.env.GOOGLE_EMAIL_ADDRESS,
-      subject,
-      html: body,
+    const tokenRes = await fetch("https://api.sendpulse.com/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "client_credentials",
+        client_id: process.env.SENDPULSE_CLIENT_ID,
+        client_secret: process.env.SENDPULSE_CLIENT_SECRET,
+      }),
     });
-
-    res.status(200).json({
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    const mailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        email: {
+          html: body,
+          subject,
+          from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
+          to: [{ email: recipient }],
+        },
+      }),
+    });
+    const response = await mailRes.json();
+    return res.status(200).json({
       status: "success",
       statusCode: 200,
-      response: info,
+      response,
     });
-  } catch (err) {
-    console.error("Email sending error:", err);
-    res.status(500).json({
+  } catch (error) {
+    return res.status(500).json({
       status: "failed",
       statusCode: 500,
-      message: err.message || "Email sending failed",
+      message: error.message || "Email sending failed",
     });
   }
 });
