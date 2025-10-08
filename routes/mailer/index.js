@@ -38,7 +38,7 @@ router.post("/send", async (req, res) => {
       },
       body: JSON.stringify({
         email: {
-          html: body,
+          html: Buffer.from(body, 'utf8').toString(),
           subject,
           from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
           to: [{ email: recipient }],
