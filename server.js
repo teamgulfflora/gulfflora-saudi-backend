@@ -12,8 +12,10 @@ app.use(express.json());
 
 app.use("/", routes);
 
+app.use("/media/images", express.static(__dirname + "/media/images"));
+
 app.listen(port, () => {
-    console.log("Server is running");
-})
+    console.log("Server is running on port " + port);
+});
 
 module.exports = app;
