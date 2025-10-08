@@ -15,7 +15,6 @@ router.get("/all", async (req, res) => {
                 orders
             });
         }
-
         return res.status(404).json({
             status: "failed",
             statusCode: 404,
@@ -44,38 +43,10 @@ router.post("/create", async (req, res) => {
     try {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
-
-        const response = await fetch("https://api-test.sa.noonpayments.com/payment/v1/order", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Key ${process.env.NOON_PAYMENTS_API}`
-            },
-            body: JSON.stringify({
-                apiOperation: "INITIATE",
-                order: {
-                    name: order.order_id,
-                    amount: Number(order.order_total).toFixed(2),
-                    currency: order.order_currency,
-                    reference: order.order_id,
-                    channel: "web",
-                    category: "pay"
-                },
-                configuration: {
-                    locale: "en",
-                    paymentAction: "SALE",
-                    returnUrl: `https://gulfflora.com/order/callback?glfo=${order.order_id}`
-                }
-            })
-        });
-
-        const result = await response.json();
-
         return res.status(200).json({
             status: "success",
             statusCode: 200,
-            order: createOrder,
-            payment: result
+            createOrder
         });
     } catch (error) {
         return res.status(500).json({
@@ -152,9 +123,8 @@ router.post("/get", async (req, res) => {
                 status: "success",
                 statusCode: 200,
                 order: order[0]
-            });
+            })
         }
-
         return res.status(404).json({
             status: "failed",
             statusCode: 404,
