@@ -65,7 +65,7 @@ router.post("/create", async (req, res) => {
                 configuration: {
                     locale: "en",
                     paymentAction: "SALE",
-                    returnUrl: "https://gulfflora.com/order/callback"
+                    returnUrl: `https://gulfflora.com/order/callback?glfo=${orderId}`
                 }
             })
         });
