@@ -42,7 +42,7 @@ router.post("/send", async (req, res) => {
           subject,
           from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
           to: [{ email: recipient }],
-          cc: cc ? [{ email: cc }] : [{ email: process.env.SENDPULSE_SMTP_EMAIL }],
+          cc: [{ email: process.env.SENDPULSE_SMTP_EMAIL }],
         },
       }),
     });
