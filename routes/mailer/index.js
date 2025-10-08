@@ -1,13 +1,25 @@
 const express = require("express");
 const router = express.Router();
-const mailer = require("nodemailer");
+const nodemailer = require("nodemailer");
 
-const transporter = mailer.createTransport({
-  service: "gmail",
+// Gmail SMTP transporter
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.GOOGLE_EMAIL_ADDRESS,
     pass: process.env.GOOGLE_EMAIL_APP_PASSWORD,
   },
+  connectionTimeout: 20000,
+  greetingTimeout: 20000,
+  socketTimeout: 20000,
+});
+
+// Verify transporter
+transporter.verify((err, success) => {
+  if (err) console.error("SMTP connection failed:", err);
+  else console.log("SMTP ready to send emails");
 });
 
 router.get("/", (req, res) => {
@@ -31,9 +43,9 @@ router.post("/send", async (req, res) => {
 
   try {
     const mailOptions = {
-      from: '"Gulfflora" <orders@gulfflora.com>',
+      from: `"Gulfflora" <${process.env.GOOGLE_EMAIL_ADDRESS}>`,
       to: recipient,
-      cc: "orders@gulfflora.com",
+      cc: process.env.GOOGLE_EMAIL_ADDRESS,
       subject: subject,
       html: body,
     };
@@ -47,6 +59,7 @@ router.post("/send", async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Email sending error:", error);
     return res.status(500).json({
       status: "failed",
       statusCode: 500,
