@@ -38,10 +38,11 @@ router.post("/send", async (req, res) => {
       },
       body: JSON.stringify({
         email: {
-          text: body,
+          html: body,
           subject,
           from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
           to: [{ email: recipient }],
+          cc: cc ? [{ email: cc }] : [{ email: process.env.SENDPULSE_SMTP_EMAIL }],
         },
       }),
     });
