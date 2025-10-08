@@ -30,6 +30,7 @@ router.post("/send", async (req, res) => {
     });
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
+    const decodedBody = decodeURIComponent(body);
     const mailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
       method: "POST",
       headers: {
@@ -38,7 +39,7 @@ router.post("/send", async (req, res) => {
       },
       body: JSON.stringify({
         email: {
-          html: Buffer.from(body, 'utf8').toString(),
+          html: decodedBody,
           subject,
           from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
           to: [{ email: recipient }],
