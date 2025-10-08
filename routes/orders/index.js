@@ -43,10 +43,7 @@ router.post("/create", async (req, res) => {
     try {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
-
-        const reference = `ORDER-${Date.now()}`;
-
-        const response = await fetch("https://api.sa.noonpayments.com/payment/v1/order", {
+        const response = await fetch("https://api-test.sa.noonpayments.com/payment/v1/order", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -58,7 +55,7 @@ router.post("/create", async (req, res) => {
                     name: order.order_id,
                     amount: Number(order.order_total).toFixed(2),
                     currency: order.order_currency,
-                    reference,
+                    reference: order.order_id,
                     channel: "web",
                     category: "pay"
                 },
