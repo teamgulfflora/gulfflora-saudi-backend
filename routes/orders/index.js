@@ -54,9 +54,8 @@ router.post("/create", async (req, res) => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    amount: order.amount || 1000,
-                    currency: order.currency || "INR",
-                    receipt: createOrder.insertedId.toString()
+                    amount: order.amount * 1000,
+                    currency: order.currency,
                 })
             });
             const rzorderResult = await rzorderResponse.json();
