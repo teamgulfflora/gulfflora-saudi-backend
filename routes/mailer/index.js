@@ -11,6 +11,7 @@ router.get("/", (req, res) => {
 
 router.post("/send", async (req, res) => {
   const { recipient, subject, body } = req.body;
+
   if (!recipient || !subject || !body) {
     return res.status(400).json({
       status: "failed",
@@ -18,36 +19,32 @@ router.post("/send", async (req, res) => {
       message: "Require recipient, subject and body as parameters",
     });
   }
+
   try {
-    const tokenRes = await fetch("https://api.sendpulse.com/oauth/access_token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "client_credentials",
-        client_id: process.env.SENDPULSE_CLIENT_ID,
-        client_secret: process.env.SENDPULSE_CLIENT_SECRET,
-      }),
-    });
-    const tokenData = await tokenRes.json();
-    const accessToken = tokenData.access_token;
-    const htmlBase64 = Buffer.from(body, "utf-8").toString("base64");
-    const mailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
+    const mailRes = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        Authorization: `Bearer ${accessToken}`,
+        accept: "application/json",
+        "content-type": "application/json",
+        "api-key": process.env.BREVO_API_KEY,
       },
       body: JSON.stringify({
-        email: {
-          subject,
-          from: { name: "Gulfflora", email: process.env.SENDPULSE_SMTP_EMAIL },
-          to: [{ email: recipient }],
-          cc: [{ email: process.env.SENDPULSE_SMTP_EMAIL }],
-          body_base64: htmlBase64,
+        sender: {
+          name: "Gulfflora",
+          email: process.env.BREVO_SENDER_EMAIL,
         },
+        to: [
+          {
+            email: recipient,
+          },
+        ],
+        subject,
+        htmlContent: body,
       }),
     });
+
     const response = await mailRes.json();
+
     return res.status(200).json({
       status: "success",
       statusCode: 200,
