@@ -21,7 +21,7 @@ router.post("/send", async (req, res) => {
   }
 
   try {
-    const mailRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
         accept: "application/json",
@@ -46,12 +46,12 @@ router.post("/send", async (req, res) => {
       }),
     });
 
-    const response = await mailRes.json();
+    const result = await response.json();
 
     return res.status(200).json({
       status: "success",
       statusCode: 200,
-      response,
+      result,
     });
   } catch (error) {
     return res.status(500).json({
