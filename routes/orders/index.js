@@ -59,7 +59,6 @@ router.post("/create", async (req, res) => {
                     receipt: createOrder.insertedId.toString()
                 })
             });
-
             const rzorderResult = await rzorderResponse.json();
 
             if (rzorderResult.id) {
