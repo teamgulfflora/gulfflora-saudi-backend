@@ -2,6 +2,7 @@ const express = require("express");
 const getDatabase = require("../../utils/mongodb/database");
 const router = express.Router();
 const { ObjectId } = require("mongodb");
+const fetch = require("node-fetch");
 
 router.get("/all", async (req, res) => {
     try {
@@ -15,6 +16,7 @@ router.get("/all", async (req, res) => {
                 orders
             });
         }
+
         return res.status(404).json({
             status: "failed",
             statusCode: 404,
@@ -43,11 +45,32 @@ router.post("/create", async (req, res) => {
     try {
         const database = await getDatabase();
         const createOrder = await database.collection("gulfflora_orders").insertOne(order);
-        return res.status(200).json({
-            status: "success",
-            statusCode: 200,
-            createOrder
-        });
+
+        if (createOrder) {
+            const rzorderResponse = await fetch("https://api.razorpay.com/v1/orders", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Basic " + Buffer.from("rzp_test_RRQnWCNTFlkhc1:jSKZtpbUaDSgwsBgxJuxnHLR").toString("base64"),
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    amount: order.amount || 1000,
+                    currency: order.currency || "INR",
+                    receipt: createOrder.insertedId.toString()
+                })
+            });
+
+            const rzorderResult = await rzorderResponse.json();
+
+            if (rzorderResult.id) {
+                return res.status(200).json({
+                    status: "success",
+                    statusCode: 200,
+                    createOrder,
+                    rzorder_id: rzorderResult.id
+                });
+            }
+        }
     } catch (error) {
         return res.status(500).json({
             status: "failed",
@@ -123,8 +146,9 @@ router.post("/get", async (req, res) => {
                 status: "success",
                 statusCode: 200,
                 order: order[0]
-            })
+            });
         }
+
         return res.status(404).json({
             status: "failed",
             statusCode: 404,
