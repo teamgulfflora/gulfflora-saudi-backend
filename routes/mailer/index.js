@@ -38,6 +38,9 @@ router.post("/send", async (req, res) => {
             email: recipient,
           },
         ],
+        cc: [
+          { email: "orders@gulfflora.com", name: "Gulfflora" }
+        ],
         subject,
         htmlContent: body,
       }),
