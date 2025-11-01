@@ -68,9 +68,9 @@ router.post("/create", uploads.single("file"), async (req, res) => {
 
         const createCollections = await Promise.all(
             collectionsJson.map(async (collection) => {
-                collection.collection_meta_title = JSON.parse(collection.collection_meta_title || "{}");
-                collection.collection_meta_description = JSON.parse(collection.collection_meta_description || "{}");
-                collection.collection_meta_keywords = JSON.parse(collection.collection_meta_keywords || "[]");
+                collection.collection_meta_title = JSON.parse(collection.collection_meta_title);
+                collection.collection_meta_description = JSON.parse(collection.collection_meta_description);
+                collection.collection_meta_keywords = JSON.parse(collection.collection_meta_keywords);
                 collection.collection_cities = collection.collection_cities.split(", ").map(c => c.trim());
                 return await database.collection("gulfflora_collections").insertOne(collection)
             })
