@@ -86,7 +86,6 @@ router.post("/create", uploads.single("file"), async (req, res) => {
                     collection.collection_cities = collection.collection_cities.split(",").map(c => c.trim());
                 }
 
-                // ✅ Safe JSON parsing for meta fields
                 collection.collection_meta_title = safeParseJSON(collection.collection_meta_title);
                 collection.collection_meta_description = safeParseJSON(collection.collection_meta_description);
                 collection.collection_meta_keywords = safeParseJSON(collection.collection_meta_keywords);
@@ -100,6 +99,43 @@ router.post("/create", uploads.single("file"), async (req, res) => {
                 status: "success",
                 statusCode: 200,
                 createCollections
+            });
+        }
+
+        return res.status(400).json({
+            status: "failed",
+            statusCode: 400,
+            message: "Something went wrong"
+        });
+    } catch (error) {
+        console.error("Upload error:", error);
+        return res.status(500).json({
+            status: "failed",
+            statusCode: 500,
+            message: error.message || "Internal server error"
+        });
+    }
+});
+
+router.post("/update", async (req, res) => {
+    try {
+        const { collection_slug, collection_update } = req.body;
+        const database = await getDatabase();
+
+        const updateCollection = await database.collection("gulfflora_collections").updateOne(
+            { collection_slug: collection_slug },
+            {
+            $set: {
+                ...collection_update
+            }
+            }
+        );
+
+        if (updateCollection) {
+            return res.status(200).json({
+                status: "success",
+                statusCode: 200,
+                updateCollection
             });
         }
 
